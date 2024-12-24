@@ -3,7 +3,7 @@ from data_loader import DataLoader
 from data_preprocessor import DataPreprocessor
 from difficulty_analyzer import DifficultyAnalyzer
 from visualization import DataVisualizer
-from pathlib import Path
+from utils.data_source import DataSource
 import pandas as pd
 import time
 
@@ -14,54 +14,76 @@ def process_data_with_progress(data_path: str):
     progress_bar = st.progress(0)
     status_text = st.empty()
     
-    # Étape 1: Chargement des données (25%)
-    status_text.text("Chargement des données...")
-    loader = DataLoader(data_path)
-    raw_data = loader.load_data()
-    progress_bar.progress(25)
-    
-    # Étape 2: Prétraitement (50%)
-    status_text.text("Prétraitement des données...")
-    preprocessor = DataPreprocessor(raw_data)
-    cleaned_data = preprocessor.clean_data()
-    episode_stats = preprocessor.calculate_episode_stats()
-    progress_bar.progress(50)
-    
-    # Étape 3: Analyse (75%)
-    status_text.text("Analyse des données...")
-    analyzer = DifficultyAnalyzer(cleaned_data)
-    level_metrics = analyzer.calculate_level_metrics()
-    action_metrics = analyzer.analyze_player_actions()
-    difficulty_data = analyzer.categorize_difficulty(level_metrics)
-    progress_bar.progress(75)
-    
-    # Étape 4: Préparation des visualisations (100%)
-    status_text.text("Préparation des visualisations...")
-    metrics = {
-        'level_metrics': difficulty_data,
-        'action_metrics': action_metrics,
-        'episode_stats': episode_stats
-    }
-    visualizer = DataVisualizer(metrics)
-    progress_bar.progress(100)
-    status_text.text("Analyse terminée!")
-    
-    return metrics, visualizer
+    try:
+        # Étape 0: Préparation des données (10%)
+        status_text.text("Préparation de la source de données...")
+        actual_path = DataSource.get_data_path(data_path)
+        progress_bar.progress(10)
+        
+        # Étape 1: Chargement des données (35%)
+        status_text.text("Chargement des données...")
+        loader = DataLoader(actual_path)
+        raw_data = loader.load_data()
+        progress_bar.progress(35)
+        
+        # Étape 2: Prétraitement (60%)
+        status_text.text("Prétraitement des données...")
+        preprocessor = DataPreprocessor(raw_data)
+        cleaned_data = preprocessor.clean_data()
+        episode_stats = preprocessor.calculate_episode_stats()
+        progress_bar.progress(60)
+        
+        # Étape 3: Analyse (85%)
+        status_text.text("Analyse des données...")
+        analyzer = DifficultyAnalyzer(cleaned_data)
+        level_metrics = analyzer.calculate_level_metrics()
+        action_metrics = analyzer.analyze_player_actions()
+        difficulty_data = analyzer.categorize_difficulty(level_metrics)
+        progress_bar.progress(85)
+        
+        # Étape 4: Préparation des visualisations (100%)
+        status_text.text("Préparation des visualisations...")
+        metrics = {
+            'level_metrics': difficulty_data,
+            'action_metrics': action_metrics,
+            'episode_stats': episode_stats
+        }
+        visualizer = DataVisualizer(metrics)
+        progress_bar.progress(100)
+        status_text.text("Analyse terminée!")
+        
+        return metrics, visualizer
+        
+    except Exception as e:
+        status_text.text("Une erreur est survenue!")
+        raise e
 
 def main():
     st.title("📊 Analyse des données Super Mario Bros")
     
-    # Sélection du dossier de données
-    data_path = st.text_input(
-        "Chemin vers les données",  
-        # value=r"C:\Users\jcpro\OneDrive\Documents\Ma maitrise\analyse\collecte de données\données des performances des joueurs\MarioMetrics\smbdataset\data-smb"
-        value=r"https://drive.google.com/drive/folders/1--4DCtgVaE5KzMUElhHDK3YNSq1M9NeL?usp=sharing"
+    # Sélection de la source des données
+    source_type = st.radio(
+        "Source des données",
+        ["Chemin local", "Google Drive"],
+        horizontal=True
     )
+    
+    if source_type == "Chemin local":
+        data_path = st.text_input(
+            "Chemin vers les données",
+            value=r"C:\Users\Yao ADJANOHOUN\Documents\Ma maitrise\analyse\smbdataset\data-smb"
+        )
+    else:
+        data_path = st.text_input(
+            "URL Google Drive",
+            value="https://drive.google.com/drive/folders/1--4DCtgVaE5KzMUElhHDK3YNSq1M9NeL?usp=sharing",
+            help="Assurez-vous que le dossier est partagé et accessible"
+        )
 
     if st.button("Analyser les données"):
         try:
-            # Traitement des données avec barre de progression
-            metrics, visualizer = process_data_with_progress(data_path)
+            with st.spinner("Traitement en cours..."):
+                metrics, visualizer = process_data_with_progress(data_path)
             
             # Affichage des résultats
             col1, col2 = st.columns(2)
