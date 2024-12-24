@@ -5,7 +5,8 @@ import re
 from PIL import Image
 from typing import Dict, Tuple, List
 from tqdm import tqdm
-
+import gdown
+import zipfile
 class DataLoader:
     def __init__(self, data_path: str):
         self.data_path = Path(data_path)
@@ -114,6 +115,26 @@ class DataLoader:
         }
 
     def get_file_info(self) -> List[Dict]:
+        
+        def __init__(self, data_path):
+         self.data_path = data_path
+
+
+    def load_data(self):
+        # Vérifiez si c'est une URL Google Drive
+        if self.data_path.startswith("https://drive.google.com"):
+            # Téléchargez le fichier dans un dossier temporaire
+            file_id = self.data_path.split('/')[-2]  # Extrait l'ID du fichier
+            output = "data-smb.zip"
+            gdown.download(f"https://drive.google.com/uc?id={file_id}", output, quiet=False)
+            # Décompressez le fichier ZIP si nécessaire
+            os.makedirs("temp_data", exist_ok=True)
+            with zipfile.ZipFile(output, 'r') as zip_ref:
+                zip_ref.extractall("temp_data")
+            return "temp_data"
+        else:
+            # Charger les données locales
+            return self.data_path
         """Retourne les informations sur les fichiers disponibles"""
         return [
             {
