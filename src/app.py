@@ -53,8 +53,9 @@ def main():
     
     # Sélection du dossier de données
     data_path = st.text_input(
-        "Chemin vers les données",
-        value=r"C:\Users\jcpro\OneDrive\Documents\Ma maitrise\analyse\collecte de données\données des performances des joueurs\MarioMetrics\smbdataset\data-smb"
+        "Chemin vers les données",  
+        # value=r"C:\Users\jcpro\OneDrive\Documents\Ma maitrise\analyse\collecte de données\données des performances des joueurs\MarioMetrics\smbdataset\data-smb"
+        value=r"https://drive.google.com/drive/folders/1--4DCtgVaE5KzMUElhHDK3YNSq1M9NeL?usp=sharing"
     )
 
     if st.button("Analyser les données"):

@@ -25,7 +25,9 @@ def format_time(seconds):
 def setup_paths():
     """Configure les chemins du projet"""
     # Chemin vers les données
-    data_path = Path(r"C:\Users\jcpro\OneDrive\Documents\Ma maitrise\analyse\collecte de données\données des performances des joueurs\MarioMetrics\smbdataset\data-smb")
+    
+    # data_path = Path(r"C:\Users\jcpro\OneDrive\Documents\Ma maitrise\analyse\collecte de données\données des performances des joueurs\MarioMetrics\smbdataset\data-smb")
+    data_path = Path(r"https://drive.google.com/drive/folders/1--4DCtgVaE5KzMUElhHDK3YNSq1M9NeL?usp=sharing")
 
     # Chemin pour les résultats (dans le même dossier que le script)
     script_dir = Path(__file__).parent
