@@ -1,121 +1,71 @@
 import streamlit as st
-from data_loader import DataLoader
-from data_preprocessor import DataPreprocessor
-from difficulty_analyzer import DifficultyAnalyzer
-from visualization import DataVisualizer
-from utils.data_source import DataSource
+from io import StringIO
 import pandas as pd
-import time
+import requests
+from PIL import Image
+import matplotlib.pyplot as plt
 
-st.set_page_config(page_title="Analyse Super Mario Bros", layout="wide")
+st.set_page_config(page_title="Visualisation des Données Super Mario Bros", layout="wide")
 
-def process_data_with_progress(data_path: str):
-    """Traite les données avec une barre de progression"""
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
+def download_csv_from_drive(link):
+    """Télécharge un fichier CSV depuis un lien Google Drive et le retourne comme DataFrame."""
     try:
-        # Étape 0: Préparation des données (10%)
-        status_text.text("Préparation de la source de données...")
-        actual_path = DataSource.get_data_path(data_path)
-        progress_bar.progress(10)
-        
-        # Étape 1: Chargement des données (35%)
-        status_text.text("Chargement des données...")
-        loader = DataLoader(actual_path)
-        raw_data = loader.load_data()
-        progress_bar.progress(35)
-        
-        # Étape 2: Prétraitement (60%)
-        status_text.text("Prétraitement des données...")
-        preprocessor = DataPreprocessor(raw_data)
-        cleaned_data = preprocessor.clean_data()
-        episode_stats = preprocessor.calculate_episode_stats()
-        progress_bar.progress(60)
-        
-        # Étape 3: Analyse (85%)
-        status_text.text("Analyse des données...")
-        analyzer = DifficultyAnalyzer(cleaned_data)
-        level_metrics = analyzer.calculate_level_metrics()
-        action_metrics = analyzer.analyze_player_actions()
-        difficulty_data = analyzer.categorize_difficulty(level_metrics)
-        progress_bar.progress(85)
-        
-        # Étape 4: Préparation des visualisations (100%)
-        status_text.text("Préparation des visualisations...")
-        metrics = {
-            'level_metrics': difficulty_data,
-            'action_metrics': action_metrics,
-            'episode_stats': episode_stats
-        }
-        visualizer = DataVisualizer(metrics)
-        progress_bar.progress(100)
-        status_text.text("Analyse terminée!")
-        
-        return metrics, visualizer
-        
+        file_id = link.split("/d/")[1].split("/view")[0]
+        direct_url = f"https://drive.google.com/uc?id={file_id}"
+        response = requests.get(direct_url)
+        response.raise_for_status()  # Vérifie que la requête a réussi
+        csv_data = StringIO(response.text)
+        return pd.read_csv(csv_data)
     except Exception as e:
-        status_text.text("Une erreur est survenue!")
-        raise e
+        st.error(f"Erreur lors du chargement de {link}: {str(e)}")
+        return None
+
+def download_image_from_drive(link):
+    """Télécharge une image depuis un lien Google Drive et la retourne comme objet PIL."""
+    try:
+        file_id = link.split("/d/")[1].split("/view")[0]
+        direct_url = f"https://drive.google.com/uc?id={file_id}"
+        response = requests.get(direct_url, stream=True)
+        response.raise_for_status()  # Vérifie que la requête a réussi
+        return Image.open(response.raw)
+    except Exception as e:
+        st.error(f"Erreur lors du chargement de l'image: {str(e)}")
+        return None
 
 def main():
-    st.title("📊 Analyse des données Super Mario Bros")
+    st.title("📊 Visualisation des Données Super Mario Bros")
     
-    # Sélection de la source des données
-    source_type = st.radio(
-        "Source des données",
-        ["Chemin local", "Google Drive"],
-        horizontal=True
-    )
+    # Liens des fichiers CSV
+    csv_links = {
+        "Level Metrics": "https://drive.google.com/file/d/17wMGdk6VoyIdEUOi325qeb4kBxHqHLlG/view?usp=sharing",
+        "Episode Stats": "https://drive.google.com/file/d/1JSXIxmqDsr8LChyNlonNCIF-NYkG69NR/view?usp=sharing",
+        "Difficulty Data": "https://drive.google.com/file/d/1NhQ7U4Yxa7k9v6y5IfQ9U9X4Ffl3qEor/view?usp=sharing"
+    }
     
-    if source_type == "Chemin local":
-        data_path = st.text_input(
-            "Chemin vers les données",
-            value=r"C:\Users\Yao ADJANOHOUN\Documents\Ma maitrise\analyse\smbdataset\data-smb"
-        )
-    else:
-        data_path = st.text_input(
-            "URL Google Drive",
-            value="https://drive.google.com/drive/folders/1--4DCtgVaE5KzMUElhHDK3YNSq1M9NeL?usp=sharing",
-            help="Assurez-vous que le dossier est partagé et accessible"
-        )
+    # Liens des fichiers PNG
+    image_links = {
+        "Action Distribution": "https://drive.google.com/file/d/1A82VUq26WioJgDD9LqnhbIvhdeFs3SRi/view?usp=sharing",
+        "Difficulty Heatmap": "https://drive.google.com/file/d/1Vbcwfl3xlw1UYfbwScMY97k58jqvs80b/view?usp=sharing"
+    }
 
-    if st.button("Analyser les données"):
-        try:
-            with st.spinner("Traitement en cours..."):
-                metrics, visualizer = process_data_with_progress(data_path)
-            
-            # Affichage des résultats
-            col1, col2 = st.columns(2)
-            
-            with col1:
-                st.subheader("🎮 Carte de difficulté")
-                fig_heatmap = visualizer.get_difficulty_heatmap()
-                st.pyplot(fig_heatmap)
+    # Charger et afficher les CSV
+    st.subheader("📋 Données CSV")
+    tabs = st.tabs(list(csv_links.keys()))
+    for i, (name, link) in enumerate(csv_links.items()):
+        with tabs[i]:
+            st.text(f"Chargement de {name}...")
+            df = download_csv_from_drive(link)
+            if df is not None:
+                st.write(f"**{name}**")
+                st.dataframe(df)
 
-            with col2:
-                st.subheader("🎯 Distribution des actions")
-                fig_actions = visualizer.get_action_distribution()
-                st.pyplot(fig_actions)
-
-            # Statistiques générales
-            st.subheader("📈 Statistiques générales")
-            summary = visualizer.generate_summary_report()
-            st.dataframe(summary)
-
-            # Données détaillées
-            st.subheader("📋 Données détaillées")
-            tabs = st.tabs(["Niveaux", "Actions", "Épisodes"])
-            
-            with tabs[0]:
-                st.dataframe(metrics['level_metrics'])
-            with tabs[1]:
-                st.dataframe(metrics['action_metrics'])
-            with tabs[2]:
-                st.dataframe(metrics['episode_stats'])
-                
-        except Exception as e:
-            st.error(f"Une erreur est survenue: {str(e)}")
+    # Charger et afficher les images
+    st.subheader("🖼️ Visualisations des Images")
+    for name, link in image_links.items():
+        st.text(f"Chargement de {name}...")
+        img = download_image_from_drive(link)
+        if img is not None:
+            st.image(img, caption=name, use_column_width=True)
 
 if __name__ == "__main__":
     main()
